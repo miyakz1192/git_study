@@ -720,14 +720,227 @@ git diffとコミット範囲
   +d
   miyakz@lily:/tmp/ex5_git_diff$ 
 
+-----------------------------------------------------------
+コミットの変更
+-----------------------------------------------------------
+
+この演習で使う構成の作成
+-------------------------
+
+  mkdir ex6_modify_commits
+  cd ex6_modify_commits
+  git init
+  git checkout -b master
+  node.sh u
+  git checkout -b topic
+  ls
+  node.sh a
+  git checkout master
+  node.sh v
+  git checkout topic
+  git merge master
+  node.sh c
+  node.sh d
+  git checkout master
+  node.sh w
+  node.sh x
+  node.sh y
+  node.sh z
+
+コミットグラフはこんな感じ::
 
 
+  * debb7b4 (HEAD, master) z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+
+cherry-pick
+--------------
+
+masterにtopicの修正(c d517715)をcherry pickする。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ ls
+  u  v  w  x  y  z
+  miyakz@lily:/tmp/ex5_git_diff$ git log --graph --oneline --decorate --all
+  * debb7b4 (HEAD, master) z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+  miyakz@lily:/tmp/ex5_git_diff$ git cherry-pick d517715
+  [master e535492] c
+   Date: Sat May 2 22:28:13 2015 +0900
+   1 file changed, 1 insertion(+)
+   create mode 100644 c
+  miyakz@lily:/tmp/ex5_git_diff$ ls
+  c  u  v  w  x  y  z
+  miyakz@lily:/tmp/ex5_git_diff$ git log --graph --oneline --decorate --all
+  * e535492 (HEAD, master) c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+さて、このレポジトリに全く関係のないレポジトリのコミットをcherry pickできるのだろうか、実験してみる。
+
+まず、neutronレポジトリをremoteとして追加する。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git remote add my_neutron https://github.com/miyakz1192/neutron.git
+  miyakz@lily:/tmp/ex5_git_diff$ git remote -v
+  my_neutron  https://github.com/miyakz1192/neutron.git (fetch)
+  my_neutron  https://github.com/miyakz1192/neutron.git (push)
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+次にmy_neutronからfetchしてくる。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git fetch my_neutron
+  miyakz@lily:/tmp/ex5_git_diff$ git checkout stable/juno
+
+checkoutしただけで、ブランチが結合したように見える。。。が？::
+
+  * e535492 (HEAD, master) c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+  * a5ffaaa (my_neutron/feature_audit) neutron audit log added
+  * e6d7c45 (my_neutron/stable/icehouse) Updated from global requirements
+
+ただ、そう見えただけであった。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git show HEAD~6
+  commit 5e9bce58e4f1198a23be42dd439a4e30340defcd
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 22:27:40 2015 +0900
+  
+      u
+  
+  diff --git a/u b/u
+  new file mode 100644
+  index 0000000..4ae8ef0
+  --- /dev/null
+  +++ b/u
+  @@ -0,0 +1 @@
+  +u
+  miyakz@lily:/tmp/ex5_git_diff$ git show HEAD~7
+  fatal: ambiguous argument 'HEAD~7': unknown revision or path not in the working tree.
+  Use '--' to separate paths from revisions, like this:
+  'git <command> [<revision>...] -- [<file>...]'
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+では試しに、stable/icehouseからmasterに対して、なにか、cherry pickしてくる。ためしに、自分のオリジナル修正(a5ffaaa)を持ってくる。エラーは起きたが、ファイルは存在する様子::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git cherry-pick a5ffaaa
+  error: could not apply a5ffaaa... neutron audit log added
+  ヒント: after resolving the conflicts, mark the corrected paths
+  ヒント: with 'git add <paths>' or 'git rm <paths>'
+  ヒント: and commit the result with 'git commit'
+  miyakz@lily:/tmp/ex5_git_diff$ git status
+  On branch master
+  You are currently cherry-picking commit a5ffaaa.
+    (fix conflicts and run "git cherry-pick --continue")
+    (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+  
+  Unmerged paths:
+    (use "git add/rm <file>..." as appropriate to mark resolution)
+  
+    deleted by us:   neutron/api/v2/resource.py
+  
+  no changes added to commit (use "git add" and/or "git commit -a")
+  miyakz@lily:/tmp/ex5_git_diff$ ls
+  c  neutron  u  v  w  x  y  z
+  miyakz@lily:/tmp/ex5_git_diff$ ls neutron/api/v2/resource.py 
+  neutron/api/v2/resource.py
+  miyakz@lily:/tmp/ex5_git_diff$ less neutron/api/v2/resource.py 
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+gitはconflictsを起こしていると言っているが、特にコンフリクトは起こしていないので、指示どおりに、git cherry-pick --continue を実行する。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git cherry-pick --continue
+  U neutron/api/v2/resource.py
+  error: commit is not possible because you have unmerged files.
+  ヒント: Fix them up in the work tree, and then use 'git add/rm <file>'
+  ヒント: as appropriate to mark resolution and make a commit, or use
+  ヒント: 'git commit -a'.
+  fatal: Exiting because of an unresolved conflict.
+  miyakz@lily:/tmp/ex5_git_diff$
 
 
+指示通りに、git addでステージしてやる。::
 
+  miyakz@lily:/tmp/ex5_git_diff$ git add neutron/api/v2/resource.py 
+  miyakz@lily:/tmp/ex5_git_diff$ less neutron/api/v2/resource.py ^C
+  miyakz@lily:/tmp/ex5_git_diff$ git status
+  On branch master
+  You are currently cherry-picking commit a5ffaaa.
+    (all conflicts fixed: run "git cherry-pick --continue")
+    (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+  
+  Changes to be committed:
+  
+    new file:   neutron/api/v2/resource.py
+  
+  miyakz@lily:/tmp/ex5_git_diff$ 
 
+あと一息、commit して、graphを見てやる。::
 
-
+  * 7d0fccb (HEAD, master) cherry-pick from my_neutron
+  * e535492 c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
 
 
 
