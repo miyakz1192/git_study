@@ -460,6 +460,274 @@ git logで指定する、集合の引き算(..)と、対称差(...)
       a
 
 
+-----------------------------------------------------------
+切り離されたHEADのブランチと任意のコミットからのブランチ
+-----------------------------------------------------------
+
+ブランチの先頭でないコミットをチェックアウトすると、detached HEADと
+呼ばれる無名ブランチができる。::
+
+  mkdir ex4_detached_head
+  cd ex4_detached_head/
+  git init
+  git checkout -b master
+  hode.sh a
+  node.sh b
+  node.sh c
+
+こんな感じのグラフになる。::
+
+  miyakz@lily:/tmp/ex4_detached_head$ git log --graph --oneline --decorate --all
+  * fd54607 (HEAD, master) c
+  * fe69331 b
+  * d1cfe80 a
+  miyakz@lily:/tmp/ex4_detached_head$ 
+
+"b"のところからcheckoutしてみる。::
+
+  miyakz@lily:/tmp/ex4_detached_head$ git checkout fe69331
+  Note: checking out 'fe69331'.
+  
+  You are in 'detached HEAD' state. You can look around, make experimental
+  changes and commit them, and you can discard any commits you make in this
+  state without impacting any branches by performing another checkout.
+  
+  If you want to create a new branch to retain commits you create, you may
+  do so (now or later) by using -b with the checkout command again. Example:
+  
+    git checkout -b new_branch_name
+  
+  HEAD is now at fe69331... b
+  miyakz@lily:/tmp/ex4_detached_head$ 
+
+HEADの様子はこんな感じ::
+
+  miyakz@lily:/tmp/ex4_detached_head$ git branch
+  * (detached from fe69331)
+    master
+  miyakz@lily:/tmp/ex4_detached_head$ git log --graph --oneline --decorate --all
+  * fd54607 (master) c
+  * fe69331 (HEAD) b
+  * d1cfe80 a
+  miyakz@lily:/tmp/ex4_detached_head$ 
+
+名前をつけてみる::
+
+  miyakz@lily:/tmp/ex4_detached_head$ git checkout -b from_b
+  Switched to a new branch 'from_b'
+  miyakz@lily:/tmp/ex4_detached_head$ git branch
+  * from_b
+    master
+  miyakz@lily:/tmp/ex4_detached_head$ 
+  miyakz@lily:/tmp/ex4_detached_head$ git log --graph --oneline --decorate --all
+  * fd54607 (master) c
+  * fe69331 (HEAD, from_b) b
+  * d1cfe80 a
+  miyakz@lily:/tmp/ex4_detached_head$ 
+
+dというnodeを増やしてみた。::
+
+  miyakz@lily:/tmp/ex4_detached_head$ node.sh d
+  [from_b 678e533] d
+   1 file changed, 1 insertion(+)
+   create mode 100644 d
+  miyakz@lily:/tmp/ex4_detached_head$ git log --graph --oneline --decorate --all
+  * 678e533 (HEAD, from_b) d
+  | * fd54607 (master) c
+  |/  
+  * fe69331 b
+  * d1cfe80 a
+  miyakz@lily:/tmp/ex4_detached_head$ 
+
+
+-----------------------------------------------------------
+git diffとコミット範囲
+-----------------------------------------------------------
+
+実験の構造を作ってみる。::
+
+  mkdir ex5_git_diff
+  cd ex5_git_diff 
+  git init
+  git checkout -b master
+  node.sh u
+  git checkout -b topic
+  ls
+  node.sh a
+  git checkout master
+  node.sh v
+  git checkout topic
+  git merge master
+  node.sh c
+  node.sh d
+  git checkout master
+  node.sh w
+  node.sh x
+  node.sh y
+  node.sh z
+
+コミットグラフはこんな感じ::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git log --graph --oneline --decorate --all
+  * debb7b4 (HEAD, master) z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+ここでmasterとtopicのdiffをとってみる。topicになるためには、masterにどのような変更を加えればよいかという観点での出力でもある。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git diff master..topic
+  diff --git a/a b/a
+  new file mode 100644
+  index 0000000..7898192
+  --- /dev/null
+  +++ b/a
+  @@ -0,0 +1 @@
+  +a
+  diff --git a/c b/c
+  new file mode 100644
+  index 0000000..f2ad6c7
+  --- /dev/null
+  +++ b/c
+  @@ -0,0 +1 @@
+  +c
+  diff --git a/d b/d
+  new file mode 100644
+  index 0000000..4bcfe98
+  --- /dev/null
+  +++ b/d
+  @@ -0,0 +1 @@
+  +d
+  diff --git a/w b/w
+  deleted file mode 100644
+  index e556b83..0000000
+  --- a/w
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -w
+  diff --git a/x b/x
+  deleted file mode 100644
+  index 587be6b..0000000
+  --- a/x
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -x
+  diff --git a/y b/y
+  deleted file mode 100644
+  index 975fbec..0000000
+  --- a/y
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -y
+  diff --git a/z b/z
+  deleted file mode 100644
+  index b680253..0000000
+  --- a/z
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -z
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+たしかに、a,c,d,を加え、w,x,y,zを除けばtopicブランチになることができる。
+指定の順番を逆にすると、予想通り、反対の結果が出てくる。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git diff topic..master
+  diff --git a/a b/a
+  deleted file mode 100644
+  index 7898192..0000000
+  --- a/a
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -a
+  diff --git a/c b/c
+  deleted file mode 100644
+  index f2ad6c7..0000000
+  --- a/c
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -c
+  diff --git a/d b/d
+  deleted file mode 100644
+  index 4bcfe98..0000000
+  --- a/d
+  +++ /dev/null
+  @@ -1 +0,0 @@
+  -d
+  diff --git a/w b/w
+  new file mode 100644
+  index 0000000..e556b83
+  --- /dev/null
+  +++ b/w
+  @@ -0,0 +1 @@
+  +w
+  diff --git a/x b/x
+  new file mode 100644
+  index 0000000..587be6b
+  --- /dev/null
+  +++ b/x
+  @@ -0,0 +1 @@
+  +x
+  diff --git a/y b/y
+  new file mode 100644
+  index 0000000..975fbec
+  --- /dev/null
+  +++ b/y
+  @@ -0,0 +1 @@
+  +y
+  diff --git a/z b/z
+  new file mode 100644
+  index 0000000..b680253
+  --- /dev/null
+  +++ b/z
+  @@ -0,0 +1 @@
+  +z
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+対称差では以下のようになる。git diff(git diff commit1...commit2)の対称差ではcommit2とcommit1とcommit2の共通の祖先との差分を表示する。この例では、topicと、masterとtopicの共通の祖先(この場合は8d81df9)の差分を表示する。8d81df9はuとvを持っており、topicはu,a,v,c,dを持っている。8d81df9がtopicになるためには、8d81df9に単純にa,c,dを加えればよい::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git diff master...topic
+  diff --git a/a b/a
+  new file mode 100644
+  index 0000000..7898192
+  --- /dev/null
+  +++ b/a
+  @@ -0,0 +1 @@
+  +a
+  diff --git a/c b/c
+  new file mode 100644
+  index 0000000..f2ad6c7
+  --- /dev/null
+  +++ b/c
+  @@ -0,0 +1 @@
+  +c
+  diff --git a/d b/d
+  new file mode 100644
+  index 0000000..4bcfe98
+  --- /dev/null
+  +++ b/d
+  @@ -0,0 +1 @@
+  +d
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+
+
+
+
+
+
+
+
 
 
 
