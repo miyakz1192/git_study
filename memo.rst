@@ -942,11 +942,276 @@ gitはconflictsを起こしていると言っているが、特にコンフリ�
   |/  
   * 5e9bce5 u
 
+直前のコミットの取り消し(git commit --amend)
+---------------------------------------------
 
+上記の状態でnode qqqを追加する。::
 
+  * 4145854 (HEAD, master) qqq
+  * 7d0fccb cherry-pick from my_neutron
+  * e535492 c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
 
+次に、qqqの中身をzzzに変更するcommitをする。::
 
+  miyakz@lily:/tmp/ex5_git_diff$ cat qqq
+  qqq
+  miyakz@lily:/tmp/ex5_git_diff$ echo zzz > qqq
+  miyakz@lily:/tmp/ex5_git_diff$ cat qqq
+  zzz
+  miyakz@lily:/tmp/ex5_git_diff$ git commit -m "qqq to zzz" -a
+  [master e68cab4] qqq to zzz
+  1 file changed, 1 insertion(+), 1 deletion(-)
+  miyakz@lily:/tmp/ex5_git_diff$ 
 
+この直前のコミットが間違えで、中身をhelloに変更したいとする。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ vim qqq
+  miyakz@lily:/tmp/ex5_git_diff$ cat qqq
+  hello
+  miyakz@lily:/tmp/ex5_git_diff$ git add qqq
+  miyakz@lily:/tmp/ex5_git_diff$ git commit --amend
+  [master 60b60f1] qqq to zzz to hello
+   Date: Sun May 3 01:26:54 2015 +0900
+   1 file changed, 1 insertion(+), 1 deletion(-)
+  miyakz@lily:/tmp/ex5_git_diff$ git log --graph --oneline --decorate  --all
+  * 60b60f1 (HEAD, master) qqq to zzz to hello
+  * 4145854 qqq
+  * 7d0fccb cherry-pick from my_neutron
+  * e535492 c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+
+blobも以下のように編集されており、コミットが上書きされたことがわかる。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git show 60b60f1
+  commit 60b60f1bdb85ecd62a08059f767e1e2e5ae111b5
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sun May 3 01:26:54 2015 +0900
+  
+      qqq to zzz to hello
+  
+  diff --git a/qqq b/qqq
+  index 1b7ae83..ce01362 100644
+  --- a/qqq
+  +++ b/qqq
+  @@ -1 +1 @@
+  -qqq
+  +hello
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+コミットの履歴を書き換える(rebase -i)
+---------------------------------------
+
+上記のグラフの状態から、以下のコミットを削除したいとする。::
+
+  * 60b60f1 (HEAD, master) qqq to zzz to hello
+  * 4145854 qqq
+
+以下のコマンドを実行。::
+
+  git rebase -i e535492
+
+-iで指定したコミット番号はrebaseコマンドでの実行対象に含まれない。さらに、
+この２つのコミットを削除したい場合は、何らかのコミットを残してあげないと行けないので、残すコミット番号を含むe535492からrebaseコマンドをスタートする必要がある。コマンドを実行すると、エディタの画面に以下のコミットが登場するので、7d0fccbを残してエディタから行ごと削除する。::
+
+  pick 7d0fccb cherry-pick from my_neutron
+  pick 4145854 qqq
+  pick 60b60f1 qqq to zzz to hello
+
+コマンドは成功する::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git rebase -i e535492
+  Successfully rebased and updated refs/heads/master.
+  miyakz@lily:/tmp/ex5_git_diff$
+
+グラフは以下のようになり、コミットが綺麗に消えている。::
+
+  * 7d0fccb (HEAD, master) cherry-pick from my_neutron
+  * e535492 c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  | * 1406d85 (topic) d
+  | * d517715 c
+  | *   b54782a Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 8d81df9 v
+  | * 3ec124b a
+  |/  
+  * 5e9bce5 u
+
+リベースする(rebase -i)
+-----------------------
+
+上記のグラフの状態から、topicブランチをmasterでリベースする。::
+
+  miyakz@lily:/tmp/ex6_git_diff$ git branch
+  * master
+    stable/juno
+    topic
+  miyakz@lily:/tmp/ex5_git_diff$ git checkout topic
+  Switched to branch 'topic'
+  miyakz@lily:/tmp/ex5_git_diff$ git branch
+    master
+    stable/juno
+  * topic
+  miyakz@lily:/tmp/ex5_git_diff$ git rebase master
+  First, rewinding head to replay your work on top of it...
+  Applying: a
+  Applying: d
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+グラフは以下のようになる。::
+
+  * 2df397a (HEAD, topic) d
+  * bf45e71 a
+  * 7d0fccb (master) cherry-pick from my_neutron
+  * e535492 c
+  * debb7b4 z
+  * 69da2b0 y
+  * 6e3faa2 x
+  * 75ef0e0 w
+  * 8d81df9 v
+  * 5e9bce5 u
+
+スカッシュでコミットをまとめる(rebase -i)
+-----------------------------------------
+
+上記のグラフの状態から、v(8d81df9)とw(75ef0e0)を１つのコミットにまとめたいとする。まず、それぞれのコミットについて確認する。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git show 8d81df9
+  commit 8d81df99975447a7492b33628e0d733b8d0c85fb
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 22:27:59 2015 +0900
+  
+      v
+  
+  diff --git a/v b/v
+  new file mode 100644
+  index 0000000..110ed9b
+  --- /dev/null
+  +++ b/v
+  @@ -0,0 +1 @@
+  +v
+  miyakz@lily:/tmp/ex5_git_diff$ git show 75ef0e0
+  commit 75ef0e095a375cf2818e769ef69659ddcca7fb33
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 22:28:21 2015 +0900
+  
+      w
+  
+  diff --git a/w b/w
+  new file mode 100644
+  index 0000000..e556b83
+  --- /dev/null
+  +++ b/w
+  @@ -0,0 +1 @@
+  +w
+  miyakz@lily:/tmp/ex5_git_diff$ 
+
+スカッシュするために、以下のコマンドを実行する。::
+
+  git rebase -i 5e9bce5
+
+エディタが開き、以下のような状態になっている。::
+
+  pick 8d81df9 v
+  pick 75ef0e0 w
+  pick 6e3faa2 x
+  pick 69da2b0 y
+  pick debb7b4 z
+  pick e535492 c
+  pick 7d0fccb cherry-pick from my_neutron
+  pick bf45e71 a
+  pick 2df397a d
+
+それを以下のように、編集する::
+
+  pick 8d81df9 v
+  squash 75ef0e0 w
+  pick 6e3faa2 x
+  pick 69da2b0 y
+  pick debb7b4 z
+  pick e535492 c
+  pick 7d0fccb cherry-pick from my_neutron
+  pick bf45e71 a
+  pick 2df397a d
+
+グラフは以下のような構造になった。もともとの構造が保存されたような形になった。おそらく、topicブランチでrebaseを実行したためと思われる::
+
+  * 03ed80c (HEAD, topic) d
+  * 2fc5cb7 a
+  * d582962 cherry-pick from my_neutron
+  * e72738b c
+  * 4323583 z
+  * 9de18e0 y
+  * a5cef87 x
+  * d8cb8d8 v
+  | * 7d0fccb (master) cherry-pick from my_neutron
+  | * e535492 c
+  | * debb7b4 z
+  | * 69da2b0 y
+  | * 6e3faa2 x
+  | * 75ef0e0 w
+  | * 8d81df9 v
+  |/  
+  * 5e9bce5 u
+
+v(d8cb8d8)を確認すると、想定通り、wを含んだコミットになっていた。::
+
+  miyakz@lily:/tmp/ex5_git_diff$ git show d8cb8d8
+  commit d8cb8d8a00461c5e77796ab2c4ac223d54b086e1
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 22:27:59 2015 +0900
+  
+      v
+      
+      w
+  
+  diff --git a/v b/v
+  new file mode 100644
+  index 0000000..110ed9b
+  --- /dev/null
+  +++ b/v
+  @@ -0,0 +1 @@
+  +v
+  diff --git a/w b/w
+  new file mode 100644
+  index 0000000..e556b83
+  --- /dev/null
+  +++ b/w
+  @@ -0,0 +1 @@
+  +w
+  miyakz@lily:/tmp/ex5_git_diff$ 
 
 
 
