@@ -321,9 +321,143 @@ a5bf01eから見た親はについてmaster^1 ... ^3で見てみる。以下の�
   +c6
   miyakz@lily:/tmp/ex2_relative_commit_name$ 
 
+-----------------------------------------------------------
+集合の引き算(..)
+-----------------------------------------------------------
 
+実用GitのP84の図6-11のようなコミット履歴を作ってみる。コミット履歴を作るために
+こんなscriptを一時的に作ってみる。パスを通す::
 
+  miyakz@lily:/tmp/ex3_symmetric_difference$ cat /home/miyakz/bin/node.sh
+  #!/bin/bash
+  
+  node_name=$1
+  
+  echo ${node_name} > ${node_name}
+  git add ${node_name}
+  git commit -m "${node_name}" -a
+  
+  miyakz@lily:/tmp/ex3_symmetric_difference$ 
 
+構造を作ってみる。::
+
+  mkdir ex3_symmetric_difference
+  cd ex3_symmetric_difference
+  git init
+  git checkout -b master
+  node.sh u
+  git checkout -b topic
+  ls
+  node.sh a
+  git checkout master
+  node.sh v
+  git checkout topic
+  git merge master
+  node.sh c
+  node.sh d
+  git checkout master
+  node.sh w
+  node.sh x
+  node.sh y
+  node.sh z
+
+コミットグラフはこんな感じ::
+
+  miyakz@lily:/tmp/ex3_symmetric_difference$ git log --graph --oneline --decorate --all
+  * d3f1b8f (HEAD, master) z
+  * 4bd773e y
+  * 063cf41 x
+  * 8b889be w
+  | * 01333a1 (topic) d
+  | * 003a7ef c
+  | *   b6bba83 Merge branch 'master' into topic
+  | |\  
+  | |/  
+  |/|   
+  * | 2fca0db v
+  | * 3db3d44 a
+  |/  
+  * dfa9329 u
+  miyakz@lily:/tmp/ex3_symmetric_difference$
+
+差をとってみる。これは集合の差。集合masterから、集合topicを引いたもの。w,x,y,zが出力されるはず::
+
+  miyakz@lily:/tmp/ex3_symmetric_difference$ git log topic..master
+  commit d3f1b8f36b5672159a3ca78201d4eec9cab91ef0
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:12 2015 +0900
+  
+      z
+  
+  commit 4bd773e5a9e3e7b8afc5812f6569050eae79418a
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:12 2015 +0900
+  
+      y
+  
+  commit 063cf41e19120bec8cbde3a1d2743e082c69f858
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:11 2015 +0900
+  
+      x
+  
+  commit 8b889be605d52720162aec16bf2a881c65178a04
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:10 2015 +0900
+  
+      w
+  miyakz@lily:/tmp/ex3_symmetric_difference$ 
+
+予想通り。次に対称差(git log topic...master)をとってみる。topicとmasterの和から、topicとmasterの積を引いたもの。つまり、a,c,d,w,x,y,zになる。::
+
+  commit d3f1b8f36b5672159a3ca78201d4eec9cab91ef0
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:12 2015 +0900
+  
+      z
+  
+  commit 4bd773e5a9e3e7b8afc5812f6569050eae79418a
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:12 2015 +0900
+  
+      y
+  
+  commit 063cf41e19120bec8cbde3a1d2743e082c69f858
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:11 2015 +0900
+  
+      x
+  
+  commit 8b889be605d52720162aec16bf2a881c65178a04
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:56:10 2015 +0900
+  
+      w
+  
+  commit 01333a1c10c4cf5f34030b943d72f473ea34801c
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:55:22 2015 +0900
+  
+      d
+  
+  commit 003a7ef96d3572122d7139634d86621e6b939a6c
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:55:21 2015 +0900
+  
+      c
+  
+  commit b6bba8366b61ee1f585a3f982287c270495895e1
+  Merge: 3db3d44 2fca0db
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:55:09 2015 +0900
+  
+      Merge branch 'master' into topic
+  
+  commit 3db3d440448f72da802464ef625aac7a0f2af71f
+  Author: kazuhiro MIYASHITA <miyakz1192@gmail.com>
+  Date:   Sat May 2 17:54:53 2015 +0900
+  
+      a
 
 
 
